@@ -1,13 +1,11 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-
-app = Flask(__name__)
-db = SQLAlchemy(app)
+from api import app, db
 
 
-@app.route('/')
-def hello():
-    return 'Hey'
+@app.shell_context_processor
+def make_shell_context():
+    return {"app": app,
+            "db": db
+            }
 
 
 if __name__ == '__main__':
