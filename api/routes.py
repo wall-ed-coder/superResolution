@@ -7,10 +7,10 @@ from flask_restx import Api, Resource, fields
 
 import jwt
 
-from .models import db, Users, JWTTokenBlocklist
+from .models import db, UsersSecret, JWTTokenBlocklist
 from .config import BaseConfig
 
-rest_api = Api(version="1.0", title="Users API")
+rest_api = Api(version="1.0", title="UsersSecret API")
 
 """
     Flask-Restx models for api request and response data
@@ -50,7 +50,7 @@ def token_required(f):
 
         try:
             data = jwt.decode(token, BaseConfig.SECRET_KEY, algorithms=["HS256"])
-            current_user = Users.get_by_email(data["email"])
+            current_user = UsersSecret.get_by_email(data["email"])
 
             if not current_user:
                 return {"success": False,
@@ -91,12 +91,12 @@ class Register(Resource):
         _email = req_data.get("email")
         _password = req_data.get("password")
 
-        user_exists = Users.get_by_email(_email)
+        user_exists = UsersSecret.get_by_email(_email)
         if user_exists:
             return {"success": False,
                     "msg": "Email already taken"}, 400
 
-        new_user = Users(username=_username, email=_email)
+        new_user = UsersSecret(username=_username, email=_email)
 
         new_user.set_password(_password)
         new_user.save()
@@ -120,7 +120,7 @@ class Login(Resource):
         _email = req_data.get("email")
         _password = req_data.get("password")
 
-        user_exists = Users.get_by_email(_email)
+        user_exists = UsersSecret.get_by_email(_email)
 
         if not user_exists:
             return {"success": False,
