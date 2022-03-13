@@ -186,3 +186,10 @@ class LogoutUser(Resource):
         return {"success": True}, 200
 
 
+@rest_api.route('/api/users/checkToken')
+class CheckUserAuth(Resource):
+    @token_required
+    def post(self, current_user):
+        _jwt_token = request.headers["authorization"]
+        return {"success": True}, 200
+
