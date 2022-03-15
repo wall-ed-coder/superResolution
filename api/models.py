@@ -1,11 +1,35 @@
 from datetime import datetime
-
+from sqlalchemy.ext.declarative import declarative_base
 import json
 
+from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+import sqlalchemy as sa
+from api.config import BaseConfig
 
 db = SQLAlchemy()
+pengine = sa.create_engine(BaseConfig.SQLALCHEMY_DATABASE_URI)
+Base = declarative_base()
+metadata = sa.MetaData(pengine)
+metadata.reflect()
+Session = sa.orm.sessionmaker(bind=pengine)
+session = Session()
+
+
+class Roles(Base):
+    __tablename__ = "roles"
+    id_role = sa.Column(sa.BigInteger, primary_key=True)
+    role_name = sa.Column(sa.String)
+    users = relationship("Users")
+
+
+class Users(Base):
+    __tablename__ = "users"
+    id_user = sa.Column(sa.BigInteger, primary_key=True)
+    roles_id = sa.Column(sa.BigInteger, sa.ForeignKey('roles.id_role'))
+    #subscription_id = sa.ForeignKey(sa.BigInteger)
+    user_secret_id = sa.Column(sa.BigInteger, sa.ForeignKey('users_secret.id'))
 
 
 class UsersSecret(db.Model):
@@ -50,7 +74,9 @@ class UsersSecret(db.Model):
         return cls.query.filter_by(email=email).first()
 
     def toDICT(self):
-        cls_dict = {'_id': self.id, 'username': self.username, 'email': self.email}
+        role_id = session.query(Users).filter_by(user_secret_id=self.id).first().roles_id
+        role_name = session.query(Roles).filter_by(id_role=role_id).first().role_name
+        cls_dict = {'_id': self.id, 'username': self.username, 'email': self.email, 'role': role_name}
         return cls_dict
 
     def toJSON(self):
