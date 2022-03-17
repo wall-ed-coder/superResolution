@@ -2,12 +2,12 @@ from datetime import datetime, timezone, timedelta
 
 from functools import wraps
 
-from flask import request
+from flask import request, jsonify, make_response
 from flask_restx import Api, Resource, fields
 
 import jwt
 
-from .models import db, UsersSecret, JWTTokenBlocklist
+from .models import db, UsersSecret, JWTTokenBlocklist, NotAuthorisedDownloadsAmount, AmountFreeDownloads
 from .config import BaseConfig
 
 rest_api = Api(version="1.0", title="UsersSecret API")
@@ -193,3 +193,26 @@ class CheckUserAuth(Resource):
         _jwt_token = request.headers["authorization"]
         return {"success": True}, 200
 
+
+@rest_api.route('/api/checkUploadsAmount')
+class CheckUploadsAmount(Resource):
+    def get(self):
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        db.session.query(NotAuthorisedDownloadsAmount).filter(NotAuthorisedDownloadsAmount.date_created <= cutoff).delete()
+        idx_ip = NotAuthorisedDownloadsAmount.get_by_ip(request.remote_addr)
+        if len(idx_ip) == 0:
+            new_ip = NotAuthorisedDownloadsAmount(amount=AmountFreeDownloads.get_amount(),
+                                                  date_created=datetime.now(timezone.utc), ip_user=request.remote_addr)
+            new_ip.save()
+            return {"success": True,
+                    "msg": 'Row was created successfully!'}, 200
+        else:
+            if idx_ip[0].amount == 0:
+                return {"success": False,
+                        "msg": "Your available amount of downloads was ended", "cutoff": str(cutoff)}, 200
+            elif idx_ip[0].amount > 0:
+                ip_string = idx_ip[0]
+                ip_string.amount = ip_string.amount - 1
+                db.session.commit()
+                return {"success": True,
+                        "msg": "Your image was uploaded"}

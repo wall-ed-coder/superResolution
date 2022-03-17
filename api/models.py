@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.ext.declarative import declarative_base
 import json
 
@@ -90,6 +90,31 @@ class JWTTokenBlocklist(db.Model):
 
     def __repr__(self):
         return f"Expired Token: {self.jwt_token}"
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+
+class AmountFreeDownloads(Base):
+    __tablename__ = "amount_free_downloads"
+    id_amount = sa.Column(sa.Integer, primary_key=True)
+    amount = sa.Column(sa.Integer)
+
+    @classmethod
+    def get_amount(cls):
+        return session.query(AmountFreeDownloads).first().amount
+
+
+class NotAuthorisedDownloadsAmount(db.Model):
+    id_not_authorised_downloads = db.Column(db.Integer(), primary_key=True)
+    amount = db.Column(db.Integer(), default=0)
+    date_created = db.Column(db.DateTime(), default=datetime.utcnow)
+    ip_user = db.Column(db.String())
+
+    @classmethod
+    def get_by_ip(cls, ip):
+        return cls.query.filter_by(ip_user=ip).all()
 
     def save(self):
         db.session.add(self)
